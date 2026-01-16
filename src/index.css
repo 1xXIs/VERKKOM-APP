@@ -1,0 +1,144 @@
+/* src/index.css */
+:root {
+  --brand-blue: #0056b3;
+  --bg-gray: #f3f4f6;
+  --text-dark: #1f2937;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-gray);
+  margin: 0;
+  padding: 20px;
+  color: var(--text-dark);
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Botón de descarga */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.btn-export {
+  background-color: var(--brand-blue);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+}
+
+.btn-export:hover {
+  background-color: #004494;
+}
+
+/* HOJA DEL REPORTE (Lo que se imprime) */
+.printable-area {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  /* Importante: fondo blanco para la imagen */
+}
+
+.header {
+  border-bottom: 3px solid var(--brand-blue);
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 32px;
+  color: var(--brand-blue);
+  letter-spacing: -1px;
+}
+
+.header p {
+  margin: 5px 0 0 0;
+  color: #6b7280;
+}
+
+/* Tarjetas de Actividad */
+.activity-list {
+  display: grid;
+  gap: 20px;
+}
+
+.activity-card {
+  border: 1px solid #e5e7eb;
+  border-left: 5px solid var(--brand-blue);
+  border-radius: 8px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 120px 1fr auto; /* Horario | Info | Estado */
+}
+
+.time-slot {
+  background-color: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--brand-blue);
+  padding: 20px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.info-slot {
+  padding: 20px;
+}
+
+.info-slot h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.info-slot .details {
+  font-size: 14px;
+  color: #4b5563;
+  display: grid;
+  gap: 5px;
+}
+
+.meta-slot {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  background: #f9fafb;
+  border-left: 1px solid #e5e7eb;
+}
+
+.status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: #dbeafe;
+  color: #1e40af;
+  text-transform: uppercase;
+}
+
+.cost-badge {
+  font-weight: 700;
+  font-size: 16px;
+  color: #059669;
+}
