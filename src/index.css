@@ -50,7 +50,13 @@ body {
   padding: 40px;
   border-radius: 12px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  /* Importante: fondo blanco para la imagen */
+  min-width: 900px;  /* Obliga a que siempre mida 900px de ancho */
+  width: 900px;      /* Asegura el ancho fijo */
+  margin: 0 auto;    /* Lo centra si hay espacio */
+}
+
+.container {
+  overflow-x: auto; 
 }
 
 .header {
