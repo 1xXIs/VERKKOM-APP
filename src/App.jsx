@@ -13,7 +13,7 @@ function App() {
 
   useEffect(() => {
     // Pedimos los datos al backend que ya tienes funcionando
-    axios.get('https://verkkom-api.onrender.com')
+    axios.get('https://verkkom-api.onrender.com/api/actividades-manana')
       .then(res => {
         setActividades(res.data.actividades || []);
         setLoading(false);
