@@ -21,11 +21,12 @@ mongoose.connect(MONGO_URI)
 
 // --- 2. DEFINIR EL MODELO (La estructura de tus datos) ---
 // En tu index.js (Backend)
+// --- 2. DEFINIR EL MODELO ---
 const ActividadSchema = new mongoose.Schema({
-  tipo: String, // <--- Agrega esto para guardar "Instalación", "Soporte", etc.
+  tipo: String,      // <--- NUEVO: Para guardar "Instalación", "Soporte", etc.
   horario: String,
   cliente: String, 
-  servicio: String, // Fibra, Antena
+  servicio: String,  // Fibra, Antena
   direccion: String,
   telefono: String,
   costo: String,
