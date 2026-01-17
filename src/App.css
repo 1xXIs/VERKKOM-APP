@@ -52,3 +52,61 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
 .card { background: var(--surface); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid var(--accent); }
 .card h3 { margin: 0 0 10px 0; color: #64748b; font-size: 0.9rem; }
 .card p { font-size: 2rem; font-weight: 800; margin: 0; color: var(--primary); }
+
+/* --- ESTILOS DEL FORMULARIO MODAL --- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.8); /* Fondo oscuro transparente */
+  display: flex; justify-content: center; align-items: center; z-index: 1000;
+  backdrop-filter: blur(4px); /* Efecto borroso elegante */
+}
+
+.modal-content {
+  background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.form-group { margin-bottom: 15px; }
+.form-label { display: block; margin-bottom: 5px; font-weight: 600; color: #334155; font-size: 0.9rem; }
+.form-input {
+  width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;
+  font-size: 1rem; transition: 0.2s; box-sizing: border-box; /* Importante para que no se salga */
+}
+.form-input:focus { border-color: var(--accent); outline: none; ring: 2px var(--accent); }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-secondary { background: #64748b; color: white; }
+
+/* --- RESPONSIVIDAD (CELULARES) --- */
+@media (max-width: 768px) {
+  .layout { flex-direction: column; overflow-y: auto; } /* Cambia de lado a columna */
+  
+  .sidebar { 
+    width: 100%; 
+    padding: 15px; 
+    flex-direction: row; 
+    justify-content: space-between; 
+    align-items: center;
+    box-sizing: border-box;
+  }
+  
+  .brand { margin-bottom: 0; font-size: 1.2rem; }
+  .sidebar nav { display: flex; gap: 10px; }
+  .nav-link span { display: none; } /* Ocultar texto en móvil, dejar solo íconos si quieres ahorrar espacio */
+  
+  .main-content { padding: 15px; }
+  
+  /* Truco para que la tabla no rompa el celular pero la IMAGEN salga bien */
+  .table-container { overflow-x: auto; } 
+  .custom-table { min-width: 800px; } /* Fuerza que la tabla mantenga su ancho para el reporte */
+  
+  .header-title { font-size: 1.5rem; }
+  .btn-group { flex-direction: column; width: 100%; }
+  .btn { justify-content: center; width: 100%; }
+}
