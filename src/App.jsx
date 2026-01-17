@@ -1,156 +1,196 @@
-import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import html2canvas from 'html2canvas';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { FaChartPie, FaTasks, FaFilePdf, FaImage, FaPlus } from 'react-icons/fa';
 import jsPDF from 'jspdf';
-// import './index.css'; // (Opcional si usas estilos externos)
+import 'jspdf-autotable';
+import html2canvas from 'html2canvas';
+import './App.css';
 
-// Tu URL de Render (API nueva)
-const API_URL = 'https://verkkom-api.onrender.com/api/actividades';
+// --- COMPONENTE MENU LATERAL ---
+const Sidebar = () => {
+  const location = useLocation();
+  return (
+    <div className="sidebar">
+      <div className="brand">VERKKOM APP</div>
+      <nav>
+        <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
+          <FaChartPie /> Dashboard
+        </Link>
+        <Link to="/actividades" className={`nav-link ${location.pathname === '/actividades' ? 'active' : ''}`}>
+          <FaTasks /> Actividades
+        </Link>
+      </nav>
+    </div>
+  );
+};
 
+// --- PAGINA DASHBOARD ---
+const Dashboard = ({ actividades }) => {
+  const terminados = actividades.filter(a => a.estado === 'TERMINADO').length;
+  const pendientes = actividades.filter(a => a.estado === 'PENDIENTE').length;
+  const total = actividades.length;
+
+  return (
+    <div>
+      <h1 className="header-title">Resumen General</h1>
+      <div className="stats-grid">
+        <div className="card" style={{ borderLeftColor: '#3b82f6' }}>
+          <h3>Total Actividades</h3>
+          <p>{total}</p>
+        </div>
+        <div className="card" style={{ borderLeftColor: '#10b981' }}>
+          <h3>Terminados</h3>
+          <p>{terminados}</p>
+        </div>
+        <div className="card" style={{ borderLeftColor: '#ef4444' }}>
+          <h3>Pendientes</h3>
+          <p>{pendientes}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- PAGINA ACTIVIDADES (TABLA + PDF/IMG) ---
+const Actividades = ({ actividades, refresh }) => {
+  const tableRef = useRef(); // Referencia para la foto
+
+  // GENERAR PDF (Estilo Reporte)
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const fechaHoy = new Date().toLocaleDateString();
+
+    // Encabezado similar al PDF de referencia
+    doc.setFontSize(22);
+    doc.text("VERKKOM", 14, 20);
+    doc.setFontSize(12);
+    doc.text("Agenda de Servicios Técnicos", 14, 28);
+    doc.text(`Fecha de emisión: ${fechaHoy}`, 14, 34);
+
+    // Tabla
+    const tableColumn = ["Actividad", "Dirección", "Servicio", "Costo", "Horario", "Estado", "Teléfono"];
+    const tableRows = [];
+
+    actividades.forEach(act => {
+      const actividadData = [
+        act.tipo || "Instalación", // Usamos el nuevo campo 'tipo' o default
+        act.direccion,
+        act.servicio,
+        act.costo ? `$${act.costo}` : "SIN COSTO",
+        act.horario,
+        act.estado,
+        act.telefono
+      ];
+      tableRows.push(actividadData);
+    });
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      theme: 'grid',
+      headStyles: { fillColor: [71, 85, 105] }, // Color gris oscuro como tu header
+      styles: { fontSize: 10 }
+    });
+
+    doc.save(`Reporte_Verkkom_${fechaHoy.replace(/\//g, '-')}.pdf`);
+  };
+
+  // GENERAR IMAGEN
+  const generateImage = async () => {
+    const element = tableRef.current;
+    const canvas = await html2canvas(element);
+    const data = canvas.toDataURL('image/png');
+    
+    const link = document.createElement('a');
+    link.href = data;
+    link.download = 'Reporte_Verkkom.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <h1 className="header-title">Actividades del Día</h1>
+        <div className="btn-group">
+          <button onClick={generatePDF} className="btn btn-pdf"><FaFilePdf /> Generar PDF</button>
+          <button onClick={generateImage} className="btn btn-img"><FaImage /> Descargar Imagen</button>
+        </div>
+      </div>
+
+      {/* Tabla Container (Lo que se convertirá en imagen) */}
+      <div className="table-container" ref={tableRef}>
+        <div style={{ padding: '10px 0', fontWeight: 'bold', fontSize: '1.2rem', color: '#0f172a' }}>
+           REPORTE DIARIO - VERKKOM
+        </div>
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>Actividad</th>
+              <th>Dirección</th>
+              <th>Servicio</th>
+              <th>Costo</th>
+              <th>Horario</th>
+              <th>Estado</th>
+              <th>Teléfono</th>
+            </tr>
+          </thead>
+          <tbody>
+            {actividades.map((act) => (
+              <tr key={act._id}>
+                <td style={{fontWeight:'bold'}}>{act.tipo || "INSTALACION"}</td>
+                <td>{act.direccion}</td>
+                <td>{act.servicio}</td>
+                <td>{act.costo ? `$${act.costo}` : <span style={{color:'red'}}>SIN COSTO</span>}</td>
+                <td>{act.horario}</td>
+                <td>
+                  <span className={`status-badge status-${act.estado.toLowerCase()}`}>
+                    {act.estado}
+                  </span>
+                </td>
+                <td>{act.telefono}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN APP COMPONENT ---
 function App() {
   const [actividades, setActividades] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    horario: '', cliente: '', servicio: '', direccion: '', telefono: '', costo: ''
-  });
-  
-  const printRef = useRef();
 
-  // Cargar actividades al iniciar
+  // Fetch de datos al cargar
+  const fetchActividades = async () => {
+    try {
+      const res = await fetch('http://localhost:3001/api/actividades'); // Tu puerto del index.js
+      const data = await res.json();
+      setActividades(data);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    }
+  };
+
   useEffect(() => {
     fetchActividades();
   }, []);
 
-  const fetchActividades = async () => {
-    try {
-      const res = await axios.get(API_URL);
-      setActividades(res.data);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error cargando datos:", error);
-      setLoading(false);
-    }
-  };
-
-  // Manejar formulario
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  // Guardar nueva actividad (POST)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(API_URL, form);
-      fetchActividades(); // Recargar la lista
-      setForm({ horario: '', cliente: '', servicio: '', direccion: '', telefono: '', costo: '' }); // Limpiar
-    } catch (error) {
-      console.error("Error guardando:", error);
-      alert("Error al guardar. Revisa la consola.");
-    }
-  };
-
-  // Borrar actividad (DELETE)
-  const handleDelete = async (id) => {
-    if(!confirm("¿Borrar esta actividad?")) return;
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-      fetchActividades();
-    } catch (error) {
-      console.error("Error borrando:", error);
-    }
-  };
-
-  // Generar PDF e Imagen
-  const handleDownload = async () => {
-    const element = printRef.current;
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Reporte_Verkkom_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
-  };
-
-  if (loading) return <div style={{padding:30}}>Cargando sistema...</div>;
-
   return (
-    <div className="container">
-      
-      {/* --- PANEL DE ADMINISTRACIÓN (NUEVO) --- */}
-      <div className="admin-panel" style={{marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px'}}>
-        <h2 style={{marginTop:0}}>🛠️ Agregar Actividad</h2>
-        <form onSubmit={handleSubmit} style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
-          <input name="horario" placeholder="Horario (10:00 AM)" value={form.horario} onChange={handleChange} required style={{padding:'8px'}} />
-          <input name="cliente" placeholder="Cliente / Tarea" value={form.cliente} onChange={handleChange} required style={{padding:'8px', flexGrow:1}} />
-          <input name="servicio" placeholder="Tipo Servicio" value={form.servicio} onChange={handleChange} style={{padding:'8px'}} />
-          <input name="direccion" placeholder="Dirección" value={form.direccion} onChange={handleChange} required style={{padding:'8px', flexGrow:1}} />
-          <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} style={{padding:'8px'}} />
-          <input name="costo" placeholder="Costo" value={form.costo} onChange={handleChange} style={{padding:'8px'}} />
-          <button type="submit" style={{background:'#28a745', color:'white', border:'none', padding:'8px 15px', cursor:'pointer', borderRadius:'4px'}}>
-            ➕ Agregar
-          </button>
-        </form>
-      </div>
-
-      <div className="actions">
-        <button onClick={handleDownload} className="btn-export">
-          📸 📄 Descargar Reporte
-        </button>
-      </div>
-
-      {/* --- ÁREA IMPRIMIBLE --- */}
-      <div ref={printRef} className="printable-area">
-        <header className="header">
-          <div>
-            <h1>VERKKOM</h1>
-            <p>Agenda de Servicios Técnicos</p>
-          </div>
-          <div style={{textAlign: 'right'}}>
-            <p>Fecha de emisión:</p>
-            <strong>{new Date().toLocaleDateString()}</strong>
-          </div>
-        </header>
-
-        <div className="activity-list">
-          {actividades.length === 0 ? (
-            <p style={{textAlign: 'center', color: '#999'}}>No hay actividades para hoy.</p>
-          ) : (
-            actividades.map((act) => (
-              <div key={act._id} className="activity-card" style={{position: 'relative'}}>
-                {/* Botón Borrar (Solo visible en pantalla) */}
-                <button 
-                  onClick={() => handleDelete(act._id)} 
-                  data-html2canvas-ignore="true" // Esto hace que el botón NO salga en el PDF
-                  style={{position:'absolute', right:'5px', top:'5px', background:'none', border:'none', cursor:'pointer', fontSize:'16px'}}
-                  title="Borrar actividad"
-                >
-                  🗑️
-                </button>
-
-                <div className="time-slot">{act.horario}</div>
-
-                <div className="info-slot">
-                  <h3>{act.cliente} <span style={{fontSize:'0.8em', color:'#666', background:'#eee', padding:'2px 5px', borderRadius:'4px'}}>{act.servicio}</span></h3>
-                  <div className="details">
-                    <div>📍 <strong>Dirección:</strong> {act.direccion}</div>
-                    {act.telefono && <div>📞 <strong>Tel:</strong> {act.telefono}</div>}
-                  </div>
-                </div>
-
-                <div className="meta-slot">
-                  <span className="status-badge">{act.estado}</span>
-                  <span className="cost-badge">{act.costo}</span>
-                </div>
-              </div>
-            ))
-          )}
+    <Router>
+      <div className="layout">
+        <Sidebar />
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={<Dashboard actividades={actividades} />} />
+            <Route path="/actividades" element={<Actividades actividades={actividades} refresh={fetchActividades} />} />
+          </Routes>
         </div>
       </div>
-    </div>
+    </Router>
   );
 }
 

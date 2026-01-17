@@ -20,10 +20,12 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error("❌ Error de conexión:", err));
 
 // --- 2. DEFINIR EL MODELO (La estructura de tus datos) ---
+// En tu index.js (Backend)
 const ActividadSchema = new mongoose.Schema({
+  tipo: String, // <--- Agrega esto para guardar "Instalación", "Soporte", etc.
   horario: String,
   cliente: String, 
-  servicio: String,
+  servicio: String, // Fibra, Antena
   direccion: String,
   telefono: String,
   costo: String,
