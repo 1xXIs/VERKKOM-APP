@@ -1,72 +1,73 @@
+require('dotenv').config();
 const express = require('express');
-const { google } = require('googleapis');
+const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SPREADSHEET_ID = '1LYqIIong6BWh354qunGMmJ1ItqXj9gGA8JTcKzlFfjo';
-const SHEET_NAME = 'AGENDA_'; // Confirmado por tu prueba
+// --- 1. CONEXIÓN A MONGODB ---
+// Aquí está tu link real con la contraseña que me pasaste:
+const MONGO_URI = process.env.MONGO_URI; 
 
-app.get('/api/actividades-manana', async (req, res) => {
-    try {
-        console.log("1. Frontend pidió datos...");
-        
-        const auth = new google.auth.GoogleAuth({
-            keyFile: 'credentials.json',
-            scopes: 'https://www.googleapis.com/auth/spreadsheets',
-        });
+if (!MONGO_URI) {
+  console.error("❌ FATAL ERROR: No se encontró la variable MONGO_URI.");
+}
 
-        const client = await auth.getClient();
-        const googleSheets = google.sheets({ version: 'v4', auth: client });
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ Conectado a la Base de Datos MongoDB"))
+  .catch(err => console.error("❌ Error de conexión:", err));
 
-        // LEEMOS UN RANGO FIJO Y PEQUEÑO PARA PROBAR
-        // Leemos desde B5 hasta H20 de la hoja "AGENDA_"
-        const rango = `'${SHEET_NAME}'!B5:H20`;
-        console.log(`2. Consultando a Google en rango: ${rango}`);
-
-        const getRows = await googleSheets.spreadsheets.values.get({
-            auth,
-            spreadsheetId: SPREADSHEET_ID,
-            range: rango, 
-        });
-
-        const rawRows = getRows.data.values;
-        console.log("3. Respuesta cruda de Google:", rawRows); // <--- ESTO ES LO IMPORTANTE
-
-        if (!rawRows || rawRows.length === 0) {
-            console.log("❌ Google dice que esas celdas están vacías.");
-            return res.json({ actividades: [] });
-        }
-
-        // Mapeo simple sin filtros raros
-        const actividades = rawRows.map((row, index) => {
-            // Si la fila está totalmente vacía, la saltamos
-            if (row.length === 0) return null;
-
-            return {
-                id: index,
-                actividad: row[0] || "---", // Columna B
-                direccion: row[1] || "---", // Columna C
-                servicio: row[2]  || "---", // Columna D
-                costo: row[3]     || "$0",  // Columna E
-                horario: row[4]   || "---", // Columna F
-                estado: row[5]    || "---", // Columna G
-                telefono: row[6]  || "---"  // Columna H
-            };
-        }).filter(item => item !== null);
-
-        console.log(`4. Enviando ${actividades.length} actividades al Frontend.`);
-        res.json({ fecha: "Prueba Directa", actividades });
-
-    } catch (error) {
-        console.error("❌ ERROR:", error.message);
-        res.status(500).json({ error: error.message });
-    }
+// --- 2. DEFINIR EL MODELO (La estructura de tus datos) ---
+const ActividadSchema = new mongoose.Schema({
+  horario: String,
+  cliente: String, 
+  servicio: String,
+  direccion: String,
+  telefono: String,
+  costo: String,
+  estado: { type: String, default: 'PENDIENTE' },
+  fecha: { type: String, default: () => new Date().toLocaleDateString() }
 });
 
+const Actividad = mongoose.model('Actividad', ActividadSchema);
+
+// --- 3. RUTAS (API) ---
+
+// GET: Obtener todas las actividades
+app.get('/api/actividades', async (req, res) => {
+  try {
+    const actividades = await Actividad.find();
+    res.json(actividades);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST: Crear una nueva actividad (Desde tu Dashboard)
+app.post('/api/actividades', async (req, res) => {
+  try {
+    const nuevaActividad = new Actividad(req.body);
+    const guardada = await nuevaActividad.save();
+    res.status(201).json(guardada);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// DELETE: Borrar actividad
+app.delete('/api/actividades/:id', async (req, res) => {
+  try {
+    await Actividad.findByIdAndDelete(req.params.id);
+    res.json({ message: "Actividad eliminada" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Configuración del puerto para Render
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`Servidor Detective corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
