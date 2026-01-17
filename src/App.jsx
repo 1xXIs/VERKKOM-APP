@@ -58,14 +58,40 @@ const Actividades = ({ actividades, refresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 1. Validación: Que no envíe cosas vacías
+    if (!formData.direccion || !formData.costo) {
+      alert("⚠️ Faltan datos: Por favor completa Dirección y Costo.");
+      return;
+    }
+
     try {
-      await fetch('http://localhost:3001/api/actividades', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const response = await fetch('http://localhost:3001/api/actividades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      alert("¡Guardado!"); setShowModal(false); refresh();
-      setFormData({ ...formData, direccion: '', telefono: '', costo: '' });
-    } catch (error) { console.error(error); }
+
+      if (!response.ok) throw new Error('Error al conectar con el servidor');
+
+      alert("✅ ¡Actividad guardada correctamente!");
+      setShowModal(false);
+      refresh(); // Actualiza la tabla automáticamente
+
+      // 2. Limpiar formulario (dejando valores útiles por defecto)
+      setFormData({
+        tipo: 'INSTALACION',
+        direccion: '',
+        servicio: 'FIBRA',
+        costo: '',
+        horario: '10:00 - 18:00',
+        telefono: ''
+      });
+
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error: Asegúrate de que el archivo 'index.js' (Backend) esté corriendo en la terminal.");
+    }
   };
 
   const generatePDF = () => {
@@ -73,7 +99,7 @@ const Actividades = ({ actividades, refresh }) => {
     doc.text("VERKKOM - Reporte Diario", 14, 20);
     const rows = actividades.map(a => [a.tipo, a.direccion, a.servicio, a.costo, a.horario, a.estado, a.telefono]);
     doc.autoTable({ head: [["Actividad", "Dirección", "Servicio", "Costo", "Horario", "Estado", "Tel"]], body: rows, startY: 30 });
-    doc.save(`Reporte_${new Date().toLocaleDateString().replace(/\//g,'-')}.pdf`);
+    doc.save(`Reporte_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
   };
 
   const generateImage = async () => {
@@ -86,18 +112,18 @@ const Actividades = ({ actividades, refresh }) => {
 
   return (
     <div>
-      <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:'10px'}}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
         <h1 className="header-title">Actividades del Día</h1>
         <div className="btn-group">
-          <button onClick={() => setShowModal(true)} className="btn" style={{background:'#10b981'}}><FaPlus/> Nuevo</button>
-          <button onClick={generatePDF} className="btn btn-pdf"><FaFilePdf/> PDF</button>
-          <button onClick={generateImage} className="btn btn-img"><FaImage/> IMG</button>
+          <button onClick={() => setShowModal(true)} className="btn" style={{ background: '#10b981' }}><FaPlus /> Nuevo</button>
+          <button onClick={generatePDF} className="btn btn-pdf"><FaFilePdf /> PDF</button>
+          <button onClick={generateImage} className="btn btn-img"><FaImage /> IMG</button>
         </div>
       </div>
 
-      <div className="table-container" style={{overflowX:'auto'}}>
-        <div ref={tableRef} style={{background:'white', padding:'15px', minWidth:'700px'}}>
-          <div style={{fontWeight:'bold', fontSize:'1.2rem', marginBottom:'10px'}}>REPORTE DIARIO - VERKKOM</div>
+      <div className="table-container" style={{ overflowX: 'auto' }}>
+        <div ref={tableRef} style={{ background: 'white', padding: '15px', minWidth: '700px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '10px' }}>REPORTE DIARIO - VERKKOM</div>
           <table className="custom-table">
             <thead>
               <tr><th>Actividad</th><th>Dirección</th><th>Servicio</th><th>Costo</th><th>Horario</th><th>Estado</th><th>Tel</th></tr>
@@ -105,7 +131,7 @@ const Actividades = ({ actividades, refresh }) => {
             <tbody>
               {actividades.map(act => (
                 <tr key={act._id}>
-                  <td style={{fontWeight:'bold'}}>{act.tipo || "INSTALACION"}</td>
+                  <td style={{ fontWeight: 'bold' }}>{act.tipo || "INSTALACION"}</td>
                   <td>{act.direccion}</td><td>{act.servicio}</td><td>${act.costo}</td><td>{act.horario}</td>
                   <td><span className={`status-badge status-${act.estado.toLowerCase()}`}>{act.estado}</span></td>
                   <td>{act.telefono}</td>
@@ -127,12 +153,13 @@ const Actividades = ({ actividades, refresh }) => {
               <div className="form-group"><label className="form-label">Servicio</label>
                 <select name="servicio" className="form-input" onChange={handleChange}><option>FIBRA</option><option>ANTENA</option></select>
               </div>
-              <div className="form-group"><label className="form-label">Dirección</label><input required name="direccion" className="form-input" onChange={handleChange}/></div>
-              <div className="form-group"><label className="form-label">Teléfono</label><input required name="telefono" className="form-input" onChange={handleChange}/></div>
-              <div className="form-group"><label className="form-label">Costo</label><input name="costo" type="number" className="form-input" onChange={handleChange}/></div>
+              <div className="form-group"><label className="form-label">Dirección</label><input required name="direccion" className="form-input" onChange={handleChange} /></div>
+              <div className="form-group"><label className="form-label">Teléfono</label><input required name="telefono" className="form-input" onChange={handleChange} /></div>
+              <div className="form-group"><label className="form-label">Horario</label><input name="horario" className="form-input" value={formData.horario} onChange={handleChange} placeholder="Ej: 10:00 AM" /></div>
+              <div className="form-group"><label className="form-label">Costo</label><input name="costo" type="number" className="form-input" onChange={handleChange} /></div>
               <div className="modal-actions">
-                <button type="button" onClick={()=>setShowModal(false)} className="btn btn-secondary">Cancelar</button>
-                <button type="submit" className="btn" style={{background:'var(--accent)'}}>Guardar</button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancelar</button>
+                <button type="submit" className="btn" style={{ background: 'var(--accent)' }}>Guardar</button>
               </div>
             </form>
           </div>
@@ -144,8 +171,8 @@ const Actividades = ({ actividades, refresh }) => {
 
 function App() {
   const [actividades, setActividades] = useState([]);
-  const fetchActividades = async () => { 
-    try { const res = await fetch('http://localhost:3001/api/actividades'); setActividades(await res.json()); } catch(e){console.error(e);}
+  const fetchActividades = async () => {
+    try { const res = await fetch('http://localhost:3001/api/actividades'); setActividades(await res.json()); } catch (e) { console.error(e); }
   };
   useEffect(() => { fetchActividades(); }, []);
 

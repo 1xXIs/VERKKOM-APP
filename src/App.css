@@ -53,10 +53,69 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .layout { flex-direction: column; overflow-y: auto; }
-  .sidebar { width: 100%; padding: 15px; flex-direction: row; justify-content: space-between; align-items: center; box-sizing: border-box; }
-  .nav-link span { display: none; } 
-  .main-content { padding: 15px; }
-  .table-container { overflow-x: auto; } 
-  .custom-table { min-width: 800px; } 
+  .layout {
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* 1. Sidebar se convierte en menú inferior fijo (estilo App móvil) */
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 10px;
+    z-index: 100; /* Para que quede encima de todo */
+    border-top: 1px solid #334155;
+    background: var(--primary);
+  }
+
+  .brand {
+    display: none; /* Ocultamos la marca en móvil para ahorrar espacio */
+  }
+
+  .nav-link {
+    flex-direction: column; /* Icono arriba, texto abajo */
+    font-size: 0.7rem;
+    padding: 5px;
+    margin: 0;
+    gap: 4px;
+  }
+
+  .nav-link span {
+    display: block; /* Volvemos a mostrar el texto pero pequeño */
+  }
+
+  /* 2. Ajuste del contenido principal para que no lo tape el menú */
+  .main-content {
+    padding: 15px;
+    padding-bottom: 80px; /* Espacio extra abajo para que el menú no tape el contenido */
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  /* 3. Tabla con scroll horizontal suave */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Scroll suave en iPhone */
+    padding: 10px;
+  }
+
+  /* 4. Botones en columna si no caben */
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
