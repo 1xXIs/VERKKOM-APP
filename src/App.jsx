@@ -66,7 +66,7 @@ const Actividades = ({ actividades, refresh }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/actividades', {
+      const response = await fetch('https://verkkom-api.onrender.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -172,7 +172,7 @@ const Actividades = ({ actividades, refresh }) => {
 function App() {
   const [actividades, setActividades] = useState([]);
   const fetchActividades = async () => {
-    try { const res = await fetch('http://localhost:3001/api/actividades'); setActividades(await res.json()); } catch (e) { console.error(e); }
+    try { const res = await fetch('https://verkkom-api.onrender.com'); setActividades(await res.json()); } catch (e) { console.error(e); }
   };
   useEffect(() => { fetchActividades(); }, []);
 
