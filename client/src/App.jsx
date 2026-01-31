@@ -7,7 +7,8 @@ import html2canvas from 'html2canvas';
 import './App.css';
 import logo from './assets/logo.png';
 
-const API_URL = 'http://localhost:3001/api/actividades';
+// Usa la variable de entorno VITE_API_URL si existe, si no, usa localhost por defecto
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/actividades';
 
 // --- MENU LATERAL ---
 const Sidebar = () => {
