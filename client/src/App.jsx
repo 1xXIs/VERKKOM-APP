@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { FaChartPie, FaTasks, FaFilePdf, FaImage, FaPlus } from 'react-icons/fa';
+import { FaChartPie, FaTasks, FaFilePdf, FaImage, FaPlus, FaTrash } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import './App.css';
+import logo from './assets/logo.png';
+
+const API_URL = 'http://localhost:3001/api/actividades';
 
 // --- MENU LATERAL ---
 const Sidebar = () => {
@@ -66,7 +69,7 @@ const Actividades = ({ actividades, refresh }) => {
     }
 
     try {
-      const response = await fetch('https://verkkom-api.onrender.com/api/actividades', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -94,19 +97,66 @@ const Actividades = ({ actividades, refresh }) => {
     }
   };
 
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: newStatus })
+      });
+      refresh();
+    } catch (error) { console.error("Error updating status:", error); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("¿Estás seguro de eliminar esta actividad?")) return;
+    try {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      refresh();
+    } catch (error) { console.error("Error deleting:", error); }
+  };
+
   const generatePDF = () => {
     const doc = new jsPDF();
-    doc.text("VERKKOM - Reporte Diario", 14, 20);
-    const rows = actividades.map(a => [a.tipo, a.direccion, a.servicio, a.costo, a.horario, a.estado, a.telefono]);
-    doc.autoTable({ head: [["Actividad", "Dirección", "Servicio", "Costo", "Horario", "Estado", "Tel"]], body: rows, startY: 30 });
-    doc.save(`Reporte_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+
+    // Logo
+    const imgProps = doc.getImageProperties(logo);
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const imgHeight = (imgProps.height * 40) / imgProps.width; // 40mm width
+    doc.addImage(logo, 'PNG', 14, 10, 40, imgHeight);
+
+    // Header Text
+    doc.setFontSize(18);
+    doc.text("Reporte Diario de Operaciones", pdfWidth - 14, 20, { align: 'right' });
+    doc.setFontSize(11);
+    doc.text(new Date().toLocaleDateString(), pdfWidth - 14, 28, { align: 'right' });
+
+    const rows = actividades.map(a => [
+      a.tipo,
+      a.direccion + '\n' + a.telefono,
+      a.servicio,
+      `$${a.costo}`,
+      a.horario,
+      a.estado
+    ]);
+
+    doc.autoTable({
+      head: [["Actividad", "Dirección / Tel", "Servicio", "Costo", "Horario", "Estado"]],
+      body: rows,
+      startY: 40,
+      theme: 'grid',
+      headStyles: { fillColor: [22, 163, 74] } // Green color
+    });
+    doc.save(`Reporte_Verkkom_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
   };
 
   const generateImage = async () => {
-    const canvas = await html2canvas(tableRef.current);
+    // Capturamos el container específico que tiene el header visual
+    const element = document.getElementById('export-container');
+    const canvas = await html2canvas(element, { scale: 2 });
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
-    link.download = 'Reporte_Verkkom.png';
+    link.download = `Reporte_Verkkom_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
     link.click();
   };
 
@@ -123,22 +173,50 @@ const Actividades = ({ actividades, refresh }) => {
 
       <div className="table-container" style={{ overflowX: 'auto' }}>
         <div ref={tableRef} style={{ background: 'white', padding: '15px', minWidth: '700px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '10px' }}>REPORTE DIARIO - VERKKOM</div>
-          <table className="custom-table">
-            <thead>
-              <tr><th>Actividad</th><th>Dirección</th><th>Servicio</th><th>Costo</th><th>Horario</th><th>Estado</th><th>Tel</th></tr>
-            </thead>
-            <tbody>
-              {actividades.map(act => (
-                <tr key={act._id}>
-                  <td style={{ fontWeight: 'bold' }}>{act.tipo || "INSTALACION"}</td>
-                  <td>{act.direccion}</td><td>{act.servicio}</td><td>${act.costo}</td><td>{act.horario}</td>
-                  <td><span className={`status-badge status-${act.estado.toLowerCase()}`}>{act.estado}</span></td>
-                  <td>{act.telefono}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div id="export-container" style={{ background: 'white', padding: '15px' }}>
+            {/* Header visible solo para impresión/exportación o si se desea */}
+            <div className="report-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+              <img src={logo} alt="Verkkom Logo" style={{ height: '60px' }} />
+              <div style={{ textAlign: 'right' }}>
+                <h2 style={{ margin: 0, color: '#333' }}>REPORTE DIARIO</h2>
+                <p style={{ margin: 0, color: '#666' }}>{new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            <table className="custom-table">
+              <thead>
+                <tr><th>Actividad</th><th>Dirección</th><th>Servicio</th><th>Costo</th><th>Horario</th><th>Estado</th><th>Acciones</th></tr>
+              </thead>
+              <tbody>
+                {actividades.map(act => (
+                  <tr key={act._id}>
+                    <td style={{ fontWeight: 'bold' }}>{act.tipo || "INSTALACION"}</td>
+                    <td>{act.direccion}<br /><small style={{ color: '#888' }}>{act.telefono}</small></td>
+                    <td>{act.servicio}</td>
+                    <td>${act.costo}</td>
+                    <td>{act.horario}</td>
+                    <td>
+                      <select
+                        className={`status-badge status-${act.estado.toLowerCase()}`}
+                        value={act.estado}
+                        onChange={(e) => handleStatusChange(act._id, e.target.value)}
+                        style={{ border: 'none', cursor: 'pointer', padding: '5px' }}
+                      >
+                        <option value="PENDIENTE">PENDIENTE</option>
+                        <option value="TERMINADO">TERMINADO</option>
+                        <option value="CANCELADO">CANCELADO</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button onClick={() => handleDelete(act._id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -172,7 +250,12 @@ const Actividades = ({ actividades, refresh }) => {
 function App() {
   const [actividades, setActividades] = useState([]);
   const fetchActividades = async () => {
-    try { const res = await fetch('https://verkkom-api.onrender.com/api/actividades'); setActividades(await res.json()); } catch (e) { console.error(e); }
+    try {
+      // Filtramos por fecha de hoy por defecto (el backend lo maneja si no enviamos nada, pero explícitamente es mejor)
+      const today = new Date().toLocaleDateString();
+      const res = await fetch(`${API_URL}?fecha=${today}`);
+      setActividades(await res.json());
+    } catch (e) { console.error(e); }
   };
   useEffect(() => { fetchActividades(); }, []);
 

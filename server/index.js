@@ -9,7 +9,7 @@ app.use(express.json());
 
 // --- 1. CONEXIÓN A MONGODB ---
 // Aquí está tu link real con la contraseña que me pasaste:
-const MONGO_URI = process.env.MONGO_URI; 
+const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
   console.error("❌ FATAL ERROR: No se encontró la variable MONGO_URI.");
@@ -25,7 +25,7 @@ mongoose.connect(MONGO_URI)
 const ActividadSchema = new mongoose.Schema({
   tipo: String,      // <--- NUEVO: Para guardar "Instalación", "Soporte", etc.
   horario: String,
-  cliente: String, 
+  cliente: String,
   servicio: String,  // Fibra, Antena
   direccion: String,
   telefono: String,
@@ -38,22 +38,53 @@ const Actividad = mongoose.model('Actividad', ActividadSchema);
 
 // --- 3. RUTAS (API) ---
 
-// GET: Obtener todas las actividades
+// GET: Obtener actividades (Filtro diario)
 app.get('/api/actividades', async (req, res) => {
   try {
-    const actividades = await Actividad.find();
+    const { fecha } = req.query;
+    let query = {};
+
+    // Si no se especifica fecha, usar la de HOY (ajustada a string local)
+    // Nota: Para producción idealmente usar ISO, pero mantenemos compatibilidad con Schema actual
+    if (!fecha) {
+      const today = new Date().toLocaleDateString();
+      query.fecha = today;
+    } else if (fecha !== 'all') {
+      query.fecha = fecha;
+    }
+
+    // Ordenar: Pendientes primero, luego Terminados
+    const actividades = await Actividad.find(query).sort({ _id: -1 });
     res.json(actividades);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// POST: Crear una nueva actividad (Desde tu Dashboard)
+// POST: Crear una nueva actividad
 app.post('/api/actividades', async (req, res) => {
   try {
+    // Asegurar que tenga fecha si no viene
+    if (!req.body.fecha) {
+      req.body.fecha = new Date().toLocaleDateString();
+    }
     const nuevaActividad = new Actividad(req.body);
     const guardada = await nuevaActividad.save();
     res.status(201).json(guardada);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// PUT: Actualizar actividad (Estado, datos, etc)
+app.put('/api/actividades/:id', async (req, res) => {
+  try {
+    const actualizada = await Actividad.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true } // Devolver el objeto actualizado
+    );
+    res.json(actualizada);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
