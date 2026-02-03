@@ -1,11 +1,10 @@
-```javascript
 import React, { useState, useRef } from 'react';
 import { useActividades, useDeleteActividad } from '../hooks/useActividades';
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "../components/ui/table";
-import { 
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "../components/ui/select";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -17,19 +16,19 @@ import ActividadModal from '../components/ActividadModal';
 const AgendaDiaria = () => {
     const [selectedTech, setSelectedTech] = useState('all');
     const [filterDate, setFilterDate] = useState(new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD for input date
-    
+
     // Convert YYYY-MM-DD to Locale Date String (D/M/YYYY or similar based on backend expectation)
     // Backend likely expects standard local format if created with new Date().toLocaleDateString()
     // Let's ensure consistency. If backend saves as "2/2/2026", we need to send that.
     // For safety, let's parse the input date and format it.
-    
+
     const formatDateForBackend = (isoDate) => {
         if (!isoDate) return 'all';
         const [year, month, day] = isoDate.split('-');
         return new Date(year, month - 1, day).toLocaleDateString();
     };
 
-    const { data: actividades = [], isLoading } = useActividades({ 
+    const { data: actividades = [], isLoading } = useActividades({
         assigned_to: selectedTech === 'all' ? undefined : selectedTech,
         fecha: formatDateForBackend(filterDate)
     });
@@ -86,13 +85,13 @@ const AgendaDiaria = () => {
                         Gestión operativa y rutas de técnicos.
                     </p>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
                     {/* Date Picker for History */}
                     <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-card w-full sm:w-auto">
                         <CalendarIcon size={16} className="text-muted-foreground" />
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             className="bg-transparent border-none focus:outline-none text-sm"
                             value={filterDate}
                             onChange={(e) => setFilterDate(e.target.value)}
@@ -109,7 +108,7 @@ const AgendaDiaria = () => {
                             <SelectItem value="Armando">Armando</SelectItem>
                         </SelectContent>
                     </Select>
-                    
+
                     <Button onClick={handleCreate} className="w-full sm:w-auto gap-2">
                         <Plus size={18} /> Nueva Actividad
                     </Button>
@@ -167,8 +166,8 @@ const AgendaDiaria = () => {
                                         <TableCell>{act.horario}</TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className={
-                                                act.estado === 'FINALIZADO' ? 'border-green-500 text-green-500' : 
-                                                act.estado === 'EN_RUTA' ? 'border-blue-500 text-blue-500' : ''
+                                                act.estado === 'FINALIZADO' ? 'border-green-500 text-green-500' :
+                                                    act.estado === 'EN_RUTA' ? 'border-blue-500 text-blue-500' : ''
                                             }>
                                                 {act.estado}
                                             </Badge>
@@ -192,16 +191,16 @@ const AgendaDiaria = () => {
             </Card>
 
             {/* Modal Compartido */}
-            <ActividadModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-                actividadToEdit={editingActividad} 
+            <ActividadModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                actividadToEdit={editingActividad}
             />
 
             {/* Reporte Oculto (Mismo de antes) */}
             <div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
-                <div 
-                    ref={reportRef} 
+                <div
+                    ref={reportRef}
                     className="w-[450px] bg-white text-slate-900 p-6 border-4 border-slate-900"
                     style={{ fontFamily: 'Arial, sans-serif' }}
                 >
