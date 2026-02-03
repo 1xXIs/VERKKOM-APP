@@ -12,15 +12,18 @@ const getActividades = async (req, res) => {
 
 const createActividad = async (req, res) => {
     try {
+        console.log("Creating Actividad Payload:", req.body); // DEBUG
         const guardada = await ActividadService.create(req.body);
         res.status(201).json(guardada);
     } catch (error) {
+        console.error("Create Error:", error);
         res.status(400).json({ message: error.message });
     }
 };
 
 const updateActividad = async (req, res) => {
     try {
+        console.log("Updating Actividad Payload:", req.body); // DEBUG
         const actualizada = await ActividadService.update(req.params.id, req.body);
         if (!actualizada) {
             return res.status(404).json({ message: "Actividad no encontrada" });
