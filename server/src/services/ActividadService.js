@@ -1,13 +1,19 @@
 const Actividad = require('../models/Actividad');
 
-const getAll = async (fecha) => {
+const getAll = async (filters = {}) => {
     let query = {};
+    const { fecha, assigned_to, created_by } = filters;
+
+    // Date Logic
     if (!fecha) {
-        const today = new Date().toLocaleDateString();
-        query.fecha = today;
+        query.fecha = new Date().toLocaleDateString();
     } else if (fecha !== 'all') {
         query.fecha = fecha;
     }
+
+    // Role Logic
+    if (assigned_to) query.assigned_to = assigned_to;
+    if (created_by) query.created_by = created_by;
 
     return await Actividad.find(query).sort({ _id: -1 });
 };

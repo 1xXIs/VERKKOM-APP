@@ -4,11 +4,19 @@ import axios from 'axios';
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const API_URL = `${BASE_URL}/api/actividades`;
 
-export function useActividades(fecha = 'all') {
+export function useActividades(filters = {}) {
+    // Si se pasa un string (backward compatibility), lo tratamos como 'fecha'
+    const queryFilters = typeof filters === 'string' ? { fecha: filters } : filters;
+
     return useQuery({
-        queryKey: ['actividades', fecha],
+        queryKey: ['actividades', queryFilters],
         queryFn: async () => {
-            const { data } = await axios.get(`${API_URL}?fecha=${fecha}`);
+            const params = new URLSearchParams();
+            Object.entries(queryFilters).forEach(([key, value]) => {
+                if (value && value !== 'all') params.append(key, value);
+            });
+
+            const { data } = await axios.get(`${API_URL}?${params.toString()}`);
             return data;
         },
     });

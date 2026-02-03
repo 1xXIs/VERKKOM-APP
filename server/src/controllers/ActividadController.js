@@ -2,8 +2,8 @@ const ActividadService = require('../services/ActividadService');
 
 const getActividades = async (req, res) => {
     try {
-        const { fecha } = req.query;
-        const actividades = await ActividadService.getAll(fecha);
+        const filters = req.query; // Pasa fecha, assigned_to, created_by
+        const actividades = await ActividadService.getAll(filters);
         res.json(actividades);
     } catch (error) {
         res.status(500).json({ message: error.message });
