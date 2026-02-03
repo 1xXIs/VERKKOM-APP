@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { useActividades, useCreateActividad, useUpdateActividad, useDeleteActividad } from '../hooks/useActividades';
-import { Plus, Search, Calendar, CheckCircle2, AlertCircle, Clock, Trash2, Edit2 } from 'lucide-react';
+import { useActividades, useDeleteActividad } from '../hooks/useActividades';
+import { Clock, Calendar, CheckCircle2, AlertCircle, Plus, Edit2, Trash2, MapPin } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import ActividadModal from '../components/ActividadModal';
 
-// Simple Card Component (Inline to save files for now, or move to ui later)
+// Simple Card Component
 const Card = ({ title, value, icon: Icon, trend, color, subtext }) => (
     <div className="bg-card text-card-foreground rounded-xl border p-6 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between space-y-0 pb-2">
@@ -22,9 +25,19 @@ const Card = ({ title, value, icon: Icon, trend, color, subtext }) => (
 );
 
 export default function Dashboard() {
-    const [fechaFiltro, setFechaFiltro] = useState('all');
-    const { data: actividades = [], isLoading, isError } = useActividades(fechaFiltro);
-    const createMutation = useCreateActividad();
+    // Default to 'all' or specific date if needed. Keeping simple filters for Dashboard view.
+    const [fechaFiltro, setFechaFiltro] = useState(new Date().toLocaleDateString()); // Default to TODAY for a dashboard
+
+    // Helper to format for backend if selecting "Hoy"
+    const formatDateForBackend = (dateString) => {
+        if (dateString === 'all') return 'all';
+        // If it's already in locale string format matching backend expectation, useful.
+        // But our hook expects specific format or 'all'. 
+        // Let's assume the hook handles the locale date string well or we pass 'all'.
+        return dateString;
+    };
+
+    const { data: actividades = [], isLoading, isError } = useActividades({ fecha: fechaFiltro });
     const deleteMutation = useDeleteActividad();
 
     // Metrics Calculation
@@ -32,15 +45,24 @@ export default function Dashboard() {
     const pendientes = actividades.filter(a => a.estado === 'PENDIENTE').length;
     const terminados = actividades.filter(a => a.estado === 'TERMINADO').length;
 
-    // UI State for Form
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [formData, setFormData] = useState({});
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingActividad, setEditingActividad] = useState(null);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        createMutation.mutate(formData);
-        setIsFormOpen(false);
-        setFormData({});
+    const handleCreate = () => {
+        setEditingActividad(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (actividad) => {
+        setEditingActividad(actividad);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (confirm("¿Estás seguro de eliminar esta actividad?")) {
+            deleteMutation.mutate(id);
+        }
     };
 
     if (isLoading) return <div className="flex h-screen items-center justify-center text-muted-foreground">Cargando dashboard...</div>;
@@ -49,7 +71,7 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-background p-8 font-sans">
             {/* HEADER */}
-            <header className="mb-8 flex items-center justify-between">
+            <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-primary">Panel de Control</h1>
                     <p className="text-muted-foreground">Resumen de operaciones y agenda diaria.</p>
@@ -59,18 +81,15 @@ export default function Dashboard() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>{new Date().toLocaleDateString()}</span>
                     </div>
-                    <button
-                        onClick={() => setIsFormOpen(true)}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                    >
-                        <Plus className="mr-2 h-4 w-4" /> Nueva Actividad
-                    </button>
+                    <Button onClick={handleCreate} className="gap-2">
+                        <Plus size={16} /> Nueva Actividad
+                    </Button>
                 </div>
             </header>
 
             {/* METRICS GRID */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-                <Card title="Total Actividades" value={total} icon={Calendar} color="text-blue-500" subtext="Registradas hoy" />
+                <Card title="Total Actividades" value={total} icon={Calendar} color="text-blue-500" subtext="En vista actual" />
                 <Card title="Pendientes" value={pendientes} icon={Clock} color="text-yellow-500" subtext="Requieren atención" />
                 <Card title="Terminados" value={terminados} icon={CheckCircle2} color="text-green-500" subtext="Completados con éxito" />
                 <Card title="Eficiencia" value={`${total ? Math.round((terminados / total) * 100) : 0}%`} icon={AlertCircle} color="text-purple-500" subtext="Tasa de finalización" />
@@ -101,10 +120,10 @@ export default function Dashboard() {
                         <table className="w-full caption-bottom text-sm">
                             <thead className="[&_tr]:border-b">
                                 <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[100px]">Horario</th>
-                                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Cliente</th>
-                                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Servicio</th>
+                                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Técnico</th>
+                                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Actividad</th>
                                     <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground hidden md:table-cell">Dirección</th>
+                                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Horario</th>
                                     <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Estado</th>
                                     <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Acciones</th>
                                 </tr>
@@ -112,33 +131,46 @@ export default function Dashboard() {
                             <tbody className="[&_tr:last-child]:border-0">
                                 {actividades.map((act) => (
                                     <tr key={act._id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                        <td className="p-4 align-middle font-medium">{act.horario || "--:--"}</td>
-                                        <td className="p-4 align-middle font-semibold">{act.cliente}</td>
                                         <td className="p-4 align-middle">
-                                            <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                                                act.servicio?.toLowerCase().includes("fibra") ? "border-transparent bg-cyan-100 text-cyan-800 dark:text-cyan-100 dark:bg-cyan-900/50" : "border-transparent bg-orange-100 text-orange-800 dark:text-orange-100 dark:bg-orange-900/50"
-                                            )}>
-                                                {act.servicio}
-                                            </span>
+                                            <Badge variant={act.assigned_to === 'Por Asignar' ? 'destructive' : 'secondary'}>
+                                                {act.assigned_to}
+                                            </Badge>
                                         </td>
-                                        <td className="p-4 align-middle hidden md:table-cell text-muted-foreground">{act.direccion}</td>
                                         <td className="p-4 align-middle">
-                                            <span className={cn("inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
-                                                act.estado === 'TERMINADO' ? "bg-green-50 text-green-700 ring-green-600/20" :
-                                                    act.estado === 'PENDIENTE' ? "bg-yellow-50 text-yellow-800 ring-yellow-600/20" : "bg-gray-50 text-gray-600 ring-gray-500/10"
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{act.tipo}</span>
+                                                <span className="text-xs text-muted-foreground">{act.cliente}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 align-middle hidden md:table-cell">
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground max-w-[200px] truncate">
+                                                <MapPin size={12} /> {act.direccion}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 align-middle font-medium">{act.horario || "--:--"}</td>
+                                        <td className="p-4 align-middle">
+                                            <Badge variant="outline" className={cn(
+                                                act.estado === 'TERMINADO' ? 'border-green-500 text-green-500' :
+                                                    act.estado === 'EN_RUTA' ? 'border-blue-500 text-blue-500' : ''
                                             )}>
                                                 {act.estado}
-                                            </span>
+                                            </Badge>
                                         </td>
                                         <td className="p-4 align-middle text-right">
-                                            <button className="text-muted-foreground hover:text-primary mr-2"><Edit2 className="h-4 w-4" /></button>
-                                            <button onClick={() => deleteMutation.mutate(act._id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                                            <div className="flex justify-end gap-2">
+                                                <Button size="icon" variant="ghost" onClick={() => handleEdit(act)}>
+                                                    <Edit2 size={16} className="text-blue-600" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" onClick={() => handleDelete(act._id)}>
+                                                    <Trash2 size={16} className="text-red-500" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
                                 {actividades.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-muted-foreground">No hay actividades registradas aún.</td>
+                                        <td colSpan={6} className="p-8 text-center text-muted-foreground">No hay actividades registradas en esta vista.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -147,57 +179,12 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* SIMPLE MODAL FORM (Overlay) */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="relative w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg sm:p-8">
-                        <h2 className="text-lg font-semibold mb-4">Nueva Actividad</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <input
-                                    type="text" placeholder="Cliente" required
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    onChange={e => setFormData({ ...formData, cliente: e.target.value })}
-                                />
-                                <input
-                                    type="text" placeholder="Horario (ej. 14:00)"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    onChange={e => setFormData({ ...formData, horario: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    onChange={e => setFormData({ ...formData, servicio: e.target.value })}
-                                >
-                                    <option value="">Seleccionar Servicio</option>
-                                    <option value="Instalación Fibra">Instalación Fibra</option>
-                                    <option value="Soporte Técnico">Soporte Técnico</option>
-                                    <option value="Antena">Antena</option>
-                                </select>
-                                <input
-                                    type="text" placeholder="Costo"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    onChange={e => setFormData({ ...formData, costo: e.target.value })}
-                                />
-                            </div>
-                            <input
-                                type="text" placeholder="Dirección"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                onChange={e => setFormData({ ...formData, direccion: e.target.value })}
-                            />
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button type="button" onClick={() => setIsFormOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                                    Guardar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            {/* Shared Modal for Create/Edit */}
+            <ActividadModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                actividadToEdit={editingActividad}
+            />
         </div>
     );
 }
