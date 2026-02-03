@@ -65,7 +65,7 @@ const AgendaDiaria = () => {
             const image = canvas.toDataURL("image/jpeg", 0.9);
             const link = document.createElement("a");
             link.href = image;
-            link.download = `Ruta_${ selectedTech }_${ filterDate }.jpg`;
+            link.download = "Ruta_" + selectedTech + "_" + filterDate + ".jpg";
             link.click();
         } catch (error) {
             console.error("Error generando imagen:", error);
