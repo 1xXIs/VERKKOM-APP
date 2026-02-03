@@ -31,12 +31,7 @@ const updateActividad = async (req, res) => {
         if (!actualizada) {
             return res.status(404).json({ message: "Actividad no encontrada" });
         }
-        // DEBUG: Return received payload to verify what the server sees
-        res.json({
-            result: "SUCCESS",
-            data_saved: actualizada,
-            debug_payload_received: req.body
-        });
+        res.json(actualizada);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
