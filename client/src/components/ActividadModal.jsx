@@ -98,11 +98,19 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
                 payload.fecha = new Date(year, month - 1, day).toLocaleDateString();
             }
 
+            // DEBUG: Ver qué estamos enviando
+            // alert(`ENVIANDO (Check Notas): ${JSON.stringify(payload, null, 2)}`);
+
+            let response;
             if (actividadToEdit) {
-                await updateMutation.mutateAsync({ id: actividadToEdit._id, ...payload });
+                response = await updateMutation.mutateAsync({ id: actividadToEdit._id, ...payload });
             } else {
-                await createMutation.mutateAsync(payload);
+                response = await createMutation.mutateAsync(payload);
             }
+
+            // DEBUG: Ver qué respondió el servidor
+            // alert(`RESPUESTA SERVER: ${JSON.stringify(response, null, 2)}`);
+
             onClose();
         } catch (error) {
             console.error("❌ ERROR GUARDANDO ACTIVIDAD:", error);
