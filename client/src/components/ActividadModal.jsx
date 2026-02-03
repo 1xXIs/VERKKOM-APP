@@ -105,7 +105,13 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
             }
             onClose();
         } catch (error) {
-            console.error("Error saving activity:", error);
+            console.error("❌ ERROR GUARDANDO ACTIVIDAD:", error);
+            if (error.response) {
+                console.error("🔥 DETALLES DEL ERROR (BACKEND):", error.response.data);
+                alert(`Error: ${JSON.stringify(error.response.data, null, 2)}`); // Fallback alert for immediate visibility
+            } else {
+                alert(`Error de conexión: ${error.message}`);
+            }
         }
     };
 
