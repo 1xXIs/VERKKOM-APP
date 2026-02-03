@@ -12,8 +12,9 @@ const connectDB = async () => {
         await mongoose.connect(MONGO_URI);
         console.log("✅ Conectado a la Base de Datos MongoDB");
     } catch (error) {
-        console.error("❌ Error de conexión:", error);
-        process.exit(1);
+        console.error("❌ Error de conexión:", error.message);
+        console.log("🔄 Reintentando en 5 segundos...");
+        setTimeout(connectDB, 5000);
     }
 };
 
