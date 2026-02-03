@@ -34,7 +34,12 @@ const update = async (id, data) => {
         assigned_to: data.assigned_to,
         created_by: data.created_by
     };
-    console.log("SERVICE UPDATE PAYLOAD (PRE-MONGOOSE):", JSON.stringify(updatePayload, null, 2));
+
+    console.log("---------------- DEBUG UPDATE ----------------");
+    console.log("ID:", id);
+    console.log("RAW DATA:", JSON.stringify(data, null, 2));
+    console.log("CONSTRUCTED PAYLOAD:", JSON.stringify(updatePayload, null, 2));
+    console.log("----------------------------------------------");
 
     // FORCE $set to ensure fields are written even if schema ignores them
     return await Actividad.findByIdAndUpdate(
