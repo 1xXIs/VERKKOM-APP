@@ -40,7 +40,45 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
 
     useEffect(() => {
         if (actividadToEdit) {
-            setFormData(actividadToEdit);
+            // Reverse parse date from Locale String to YYYY-MM-DD for input
+            // formats usually: D/M/YYYY or M/D/YYYY. We try to be smart.
+            let isoDate = '';
+            if (actividadToEdit.fecha) {
+                // Check if it's already ISO
+                if (actividadToEdit.fecha.includes('-') && actividadToEdit.fecha.length === 10) {
+                    isoDate = actividadToEdit.fecha;
+                } else {
+                    // Attempt to parse locale string
+                    const parts = actividadToEdit.fecha.split('/');
+                    if (parts.length === 3) {
+                        // Asumimos formato dia/mes/año o mes/dia/año... es ambiguo.
+                        // Por consistencia con AgendaDiaria que usa new Date(), confiaremos en Date.parse o manual
+                        // AgendaDiaria construye con (year, month-1, day).
+                        // Vamos a asumir que lo que guardamos (Date.toLocaleDateString()) es parseable por Date
+                        // Pero para el input necesitamos YYYY-MM-DD.
+
+                        // Hack seguro: El input necesita YYYY-MM-DD
+                        // Si es D/M/YYYY (comun en ES/LATAM) -> parts[2]-parts[1]-parts[0]
+                        // Si es M/D/YYYY (US) -> parts[2]-parts[0]-parts[1]
+
+                        // Vamos a intentar obtenerlo del objeto Date nativo si es posible
+                        // O simplemente dejamos el input vacio si falla la conversion compleja
+                        // Una opcion mejor: Cuando se edita, usamos la fecha tal cual si no podemos parsearla
+                        // Pero el input type="date" mostrara vacio.
+
+                        // Mejor intento:
+                        const d = new Date(actividadToEdit.fecha); // Try standard parse
+                        if (!isNaN(d.getTime())) {
+                            isoDate = d.toISOString().split('T')[0];
+                        }
+                    }
+                }
+            }
+
+            setFormData({
+                ...actividadToEdit,
+                fecha: isoDate || actividadToEdit.fecha // Fallback
+            });
         } else {
             setFormData({
                 cliente: '',
@@ -53,7 +91,8 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
                 estado: 'PENDIENTE',
                 assigned_to: 'Por Asignar',
                 created_by: 'OFICINA',
-                notas: ''
+                notas: '',
+                fecha: new Date().toLocaleDateString('en-CA') // Default YYYY-MM-DD
             });
         }
     }, [actividadToEdit, isOpen]);
@@ -61,10 +100,20 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Normalize Date to match Backend/AgendaDiaria expectation (Locale String)
+            // formData.fecha comes as YYYY-MM-DD from input
+            let payload = { ...formData };
+            if (payload.fecha && payload.fecha.includes('-')) {
+                const [year, month, day] = payload.fecha.split('-');
+                // Create date object and format to local string
+                // Note: Using the same logic as AgendaDiaria to ensure match
+                payload.fecha = new Date(year, month - 1, day).toLocaleDateString();
+            }
+
             if (actividadToEdit) {
-                await updateMutation.mutateAsync({ id: actividadToEdit._id, ...formData });
+                await updateMutation.mutateAsync({ id: actividadToEdit._id, ...payload });
             } else {
-                await createMutation.mutateAsync(formData);
+                await createMutation.mutateAsync(payload);
             }
             onClose();
         } catch (error) {
@@ -134,63 +183,69 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Dirección</label>
-                        <input
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={formData.direccion}
-                            onChange={e => handleChange('direccion', e.target.value)}
-                            placeholder="Calle, Número, Colonia"
+                    value={formData.direccion}
+                    onChange={e => handleChange('direccion', e.target.value)}
+                    placeholder="Calle, Número, Colonia"
                         />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Técnico Asignado</label>
-                            <Select value={formData.assigned_to} onValueChange={val => handleChange('assigned_to', val)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Técnico" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Por Asignar">Por Asignar</SelectItem>
-                                    <SelectItem value="Jairo">Jairo</SelectItem>
-                                    <SelectItem value="Armando">Armando</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Registrado Por</label>
-                            <Select value={formData.created_by} onValueChange={val => handleChange('created_by', val)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Agente" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="OFICINA">Oficina (General)</SelectItem>
-                                    <SelectItem value="Dina">Dina</SelectItem>
-                                    <SelectItem value="Luz">Luz</SelectItem>
-                                    <SelectItem value="Brayan">Brayan</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Notas / Observaciones</label>
-                        <textarea
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={formData.notas}
-                            onChange={e => handleChange('notas', e.target.value)}
-                            placeholder="Detalles adicionales..."
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit">Guardar</Button>
-                    </div>
-                </form>
             </div>
-        </ModalOverlay>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Fecha Programada</label>
+                <input
+                    type="date"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.fecha || new Date().toISOString().split('T')[0]} // Default to today if missing
+                    onChange={e => handleChange('fecha', e.target.value)}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Técnico Asignado</label>
+                    <Select value={formData.assigned_to} onValueChange={val => handleChange('assigned_to', val)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Técnico" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Por Asignar">Por Asignar</SelectItem>
+                            <SelectItem value="Jairo">Jairo</SelectItem>
+                            <SelectItem value="Armando">Armando</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Registrado Por</label>
+                    <Select value={formData.created_by} onValueChange={val => handleChange('created_by', val)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Agente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="OFICINA">Oficina (General)</SelectItem>
+                            <SelectItem value="Dina">Dina</SelectItem>
+                            <SelectItem value="Luz">Luz</SelectItem>
+                            <SelectItem value="Brayan">Brayan</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Notas / Observaciones</label>
+                <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.notas}
+                    onChange={e => handleChange('notas', e.target.value)}
+                    placeholder="Detalles adicionales..."
+                />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                <Button type="submit">Guardar</Button>
+            </div>
+        </form>
+            </div >
+        </ModalOverlay >
     );
 };
 
