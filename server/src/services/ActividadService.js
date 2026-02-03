@@ -30,12 +30,18 @@ const update = async (id, data) => {
     // SECURITY PATCH: Force fields to be recognized
     const updatePayload = {
         ...data,
-        notas: data.notas, // Explicitly touch these fields
+        notas: data.notas,
         assigned_to: data.assigned_to,
         created_by: data.created_by
     };
     console.log("SERVICE UPDATE PAYLOAD (PRE-MONGOOSE):", JSON.stringify(updatePayload, null, 2));
-    return await Actividad.findByIdAndUpdate(id, updatePayload, { new: true });
+
+    // FORCE $set to ensure fields are written even if schema ignores them
+    return await Actividad.findByIdAndUpdate(
+        id,
+        { $set: updatePayload },
+        { new: true, strict: false }
+    );
 };
 
 const remove = async (id) => {
