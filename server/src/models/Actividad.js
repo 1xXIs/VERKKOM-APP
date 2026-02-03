@@ -21,6 +21,6 @@ const ActividadSchema = new mongoose.Schema({
     assigned_to: { type: String, enum: ['Jairo', 'Armando', 'Por Asignar'], default: 'Por Asignar' }, // Técnico
     fecha: { type: String, default: () => new Date().toLocaleDateString() },
     notas: String // Bitácora interna
-});
+}, { strict: false });
 
 module.exports = mongoose.model('Actividad', ActividadSchema);
