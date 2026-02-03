@@ -57,8 +57,18 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
             }
 
             setFormData({
-                ...actividadToEdit,
-                fecha: isoDate || actividadToEdit.fecha
+                cliente: actividadToEdit.cliente || '',
+                horario: actividadToEdit.horario || '',
+                servicio: actividadToEdit.servicio || '',
+                direccion: actividadToEdit.direccion || '',
+                telefono: actividadToEdit.telefono || '',
+                costo: actividadToEdit.costo || '',
+                tipo: actividadToEdit.tipo || 'SOPORTE',
+                estado: actividadToEdit.estado || 'PENDIENTE',
+                assigned_to: actividadToEdit.assigned_to || 'Por Asignar',
+                created_by: actividadToEdit.created_by || 'OFICINA',
+                notas: actividadToEdit.notas || '',
+                fecha: isoDate || actividadToEdit.fecha || ''
             });
         } else {
             setFormData({
