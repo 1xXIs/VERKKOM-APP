@@ -99,7 +99,7 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
             }
 
             // DEBUG: Ver qué estamos enviando
-            // alert(`ENVIANDO (Check Notas): ${JSON.stringify(payload, null, 2)}`);
+            alert(`ENVIANDO (Check Notas): ${JSON.stringify(payload, null, 2)}`);
 
             let response;
             if (actividadToEdit) {
@@ -109,7 +109,7 @@ const ActividadModal = ({ isOpen, onClose, actividadToEdit = null }) => {
             }
 
             // DEBUG: Ver qué respondió el servidor
-            // alert(`RESPUESTA SERVER: ${JSON.stringify(response, null, 2)}`);
+            alert(`RESPUESTA SERVER: ${JSON.stringify(response, null, 2)}`);
 
             onClose();
         } catch (error) {
