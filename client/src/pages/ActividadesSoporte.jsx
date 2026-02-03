@@ -1,24 +1,46 @@
 import React, { useState } from 'react';
-import { useActividades } from '../hooks/useActividades';
+import { useActividades, useDeleteActividad } from '../hooks/useActividades';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "../components/ui/table";
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "../components/ui/select";
+import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { User, Phone, MapPin, Calendar, FileText } from 'lucide-react';
+import { Plus, MapPin, Calendar, FileText, Edit2, Trash2 } from 'lucide-react';
+import ActividadModal from '../components/ActividadModal';
 
 const ActividadesSoporte = () => {
     const [selectedAgent, setSelectedAgent] = useState('all');
 
-    // Filtro dinámico: Si seleccionamos un agente, filtramos por 'created_by'
-    // Si no, mostramos todos (o podrías filtrar por fecha si prefieres ver solo lo de hoy)
+    // Support usually wants to see everything or filter by agent.
+    // Assuming 'all' dates for now, or we could add a date filter too similar to Agenda.
     const { data: actividades = [], isLoading } = useActividades({
         created_by: selectedAgent === 'all' ? undefined : selectedAgent,
-        fecha: 'all' // En soporte queremos ver todo el historial o filtrar por mes (pendiente de definir)
+        fecha: 'all'
     });
+
+    const deleteMutation = useDeleteActividad();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingActividad, setEditingActividad] = useState(null);
+
+    const handleCreate = () => {
+        setEditingActividad(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (actividad) => {
+        setEditingActividad(actividad);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (confirm("¿Estás seguro de eliminar este ticket?")) {
+            deleteMutation.mutate(id);
+        }
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -44,11 +66,10 @@ const ActividadesSoporte = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-muted-foreground hidden md:inline-block">Ver casos de:</span>
+                <div className="flex items-center gap-4 w-full md:w-auto">
                     <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Agente" />
+                        <SelectTrigger className="w-full md:w-[180px]">
+                            <SelectValue placeholder="Filtrar Agente" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todos los Agentes</SelectItem>
@@ -58,6 +79,10 @@ const ActividadesSoporte = () => {
                             <SelectItem value="OFICINA">General (Oficina)</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    <Button onClick={handleCreate} className="w-full md:w-auto gap-2">
+                        <Plus size={18} /> Nuevo Ticket
+                    </Button>
                 </div>
             </div>
 
@@ -75,10 +100,10 @@ const ActividadesSoporte = () => {
                                 <TableHead className="w-[100px]">Fecha</TableHead>
                                 <TableHead>Agente</TableHead>
                                 <TableHead>Cliente</TableHead>
-                                <TableHead>Contacto</TableHead>
                                 <TableHead>Detalles</TableHead>
                                 <TableHead>Notas Internas</TableHead>
                                 <TableHead className="text-right">Estado</TableHead>
+                                <TableHead className="text-right">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -114,16 +139,7 @@ const ActividadesSoporte = () => {
                                                     <MapPin size={12} />
                                                     <span className="truncate max-w-[150px]" title={act.direccion}>{act.direccion}</span>
                                                 </div>
-                                                <div className="flex items-center gap-1 text-blue-600 font-medium">
-                                                    <Phone size={12} />
-                                                    {act.telefono}
-                                                </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="text-xs">
-                                                {act.tipo}
-                                            </Badge>
                                         </TableCell>
                                         <TableCell className="max-w-[200px]">
                                             {act.notas ? (
@@ -132,13 +148,23 @@ const ActividadesSoporte = () => {
                                                     <p className="line-clamp-2" title={act.notas}>{act.notas}</p>
                                                 </div>
                                             ) : (
-                                                <span className="text-xs text-muted-foreground italic">Sin notas</span>
+                                                <span className="text-xs text-muted-foreground italic">Try adding notes...</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(act.estado)}`}>
                                                 {act.estado}
                                             </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button size="icon" variant="ghost" onClick={() => handleEdit(act)}>
+                                                    <Edit2 size={16} className="text-blue-600" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" onClick={() => handleDelete(act._id)}>
+                                                    <Trash2 size={16} className="text-red-500" />
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -147,6 +173,12 @@ const ActividadesSoporte = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            <ActividadModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                actividadToEdit={editingActividad}
+            />
         </div>
     );
 };
