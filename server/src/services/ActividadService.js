@@ -27,7 +27,15 @@ const create = async (data) => {
 };
 
 const update = async (id, data) => {
-    return await Actividad.findByIdAndUpdate(id, data, { new: true });
+    // SECURITY PATCH: Force fields to be recognized
+    const updatePayload = {
+        ...data,
+        notas: data.notas, // Explicitly touch these fields
+        assigned_to: data.assigned_to,
+        created_by: data.created_by
+    };
+    console.log("SERVICE UPDATE PAYLOAD (PRE-MONGOOSE):", JSON.stringify(updatePayload, null, 2));
+    return await Actividad.findByIdAndUpdate(id, updatePayload, { new: true });
 };
 
 const remove = async (id) => {
